@@ -1,8 +1,6 @@
 import unittest
 from unittest.mock import Mock, MagicMock
 from library import library_db_interface, patron
-import json
-from requests import request
 
 class TestLibbraryDBInterface(unittest.TestCase):
 
@@ -15,7 +13,7 @@ class TestLibbraryDBInterface(unittest.TestCase):
     def test_insert_patron_not_in_db(self):
         patron_mock = Mock()
         self.db_interface.retrieve_patron = Mock(return_value=None)
-        data = {'fname': 'name', 'lname': 'name', 'age': 'age', 'memberID': 'memberID',
+        data = {'fname': 'name', 'lname': 'name', 'age': '2', 'memberID': '3',
                 'borrowed_books': []}
         self.db_interface.convert_patron_to_db_format = Mock(return_value=data)
         self.db_interface.db.insert = Mock(side_effect=lambda x: 10 if x==data else 0)
@@ -23,8 +21,8 @@ class TestLibbraryDBInterface(unittest.TestCase):
 
     def test_insert_patron_already_in_db(self):
         patron_mock = Mock()
-        self.db_interface.retrieve_patron = Mock(return_value=None)
-        self.assertIsNone(self.db_interface.retrieve_patron(patron_mock))
+        self.db_interface.retrieve_patron = Mock(return_value=patron_mock)
+        self.assertIsNone(self.db_interface.insert_patron(patron_mock))
 
     def test_insert_patron_false_patron(self):
         patron_mock = MagicMock()
@@ -43,7 +41,7 @@ class TestLibbraryDBInterface(unittest.TestCase):
         self.assertEqual(self.db_interface.get_all_patrons(), [patron_mock])
 
     def test_update_patron(self):
-        data = {'fname': 'name', 'lname': 'name', 'age': 'age', 'memberID': 'memberID',
+        data = {'fname': 'name', 'lname': 'name', 'age': '2', 'memberID': '3',
                 'borrowed_books': []}
         self.db_interface.convert_patron_to_db_format = Mock(return_value=data)
         db_update_mock = Mock()
@@ -56,18 +54,32 @@ class TestLibbraryDBInterface(unittest.TestCase):
         patron_mock.__bool__.return_value = False
         self.assertIsNone(self.db_interface.update_patron(patron_mock))
 
-    def test_retrieve_patron(self):
-        data = [{'fname': 'name', 'lname': 'name', 'age': 'age', 'memberID': 'memberID',
+    def test_retrieve_patron_data_compare(self):
+        data = [{'fname': 'name', 'lname': 'name', 'age': '2', 'memberID': '3',
                 'borrowed_books': []}]
         self.db_interface.db.search = Mock(return_value=data)
-        mock_member_id = MagicMock()
-        mock_member_id.__eq__.return_value = True
-        retrieved :patron.Patron = self.db_interface.retrieve_patron(mock_member_id)
+        mock_member_id = Mock()
+        retrieved: patron.Patron = self.db_interface.retrieve_patron(mock_member_id)
+
         self.assertEqual(retrieved.fname, data[0]['fname'])
         self.assertEqual(retrieved.lname, data[0]['lname'])
         self.assertEqual(retrieved.age, data[0]['age'])
         self.assertEqual(retrieved.memberID, data[0]['memberID'])
         self.assertEqual(retrieved.borrowed_books, data[0]['borrowed_books'])
+
+    def test_retrieve_patron_object_compare(self):
+        data = [{'fname': 'name', 'lname': 'name', 'age': '2', 'memberID': '3',
+                'borrowed_books': []}]
+        self.db_interface.db.search = Mock(return_value=data)
+        mock_member_id = Mock()
+        retrieved: patron.Patron = self.db_interface.retrieve_patron(mock_member_id)
+
+        mock_patron = Mock()
+        mock_patron.__dict__ = {'fname': 'name', 'lname': 'name', 'age': '2', 'memberID': '3',
+                'borrowed_books': []}
+        
+        self.assertEqual(retrieved, mock_patron)
+
 
 
     def test_retrieve_patron_false(self):
